@@ -1,5 +1,6 @@
 package com.example.deteksisayur
 
+import Database
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -24,12 +25,13 @@ import org.tensorflow.lite.support.image.TensorImage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
+import android.util.Base64
+import com.google.gson.Gson
+import okhttp3.MediaType
+import okhttp3.RequestBody
+import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -40,12 +42,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var button: Button
     private lateinit var hasildetect: TextView
     private val GALLERY_REQUEST_CODE = 123
-    private val BASE_URL = "https://example.com/api/"
     private val TAG: String = "CHECK_RESPONSE"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        getData()
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
         hasildetect = binding.rhasilDetect
         val buttonGaleri = binding.ambilGaleri
         val buttonSimpanLokal = binding.simpanLokal
+        val buttonKirimServer = binding.kirimServer
 
         button.setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
@@ -86,31 +87,48 @@ class MainActivity : AppCompatActivity() {
         buttonSimpanLokal.setOnClickListener {
             saveImageAndResultToLocalStorage()
         }
-    }
 
-    private fun getData(){
-        val api = Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(Api::class.java)
-
-        api.getData().enqueue(object : Callback<List<Data>>{
-            override fun onResponse(call: Call<List<Data>>, response: Response<List<Data>>) {
-                if (response.isSuccessful) {
-                    response.body()?.let {
-                        for (data in it){
-                            Log.i("TAG", "Respon : ${data.body}")
-                        }
-                    }
+        val requestInternetPermission =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                if (granted) {
+                    Toast.makeText(this, "Berhasil Terhubung", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Akses INTERNET ditolak!! Coba lagi", Toast.LENGTH_SHORT).show()
                 }
             }
 
-            override fun onFailure(call: Call<List<Data>>, t: Throwable) {
-                Log.i("TAG", "Respon : ${t.message}")
-            }
+        buttonKirimServer.setOnClickListener {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.INTERNET
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                val hasilDeteksi = hasildetect.text.toString()
+                val bitmap = (imageView.drawable as BitmapDrawable).bitmap
+                val base64Image = bitmapToBase64(bitmap)
 
-        })
+                val dataToSend = Data(base64Image, hasilDeteksi)
+
+                val databaseService = Database()
+
+                databaseService.sendDataToDatabase(dataToSend) { success ->
+                    if (success) {
+                        Toast.makeText(this@MainActivity, "Data berhasil dikirim ke Database", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Gagal mengirim data ke Database", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                requestInternetPermission.launch(android.Manifest.permission.INTERNET)
+            }
+        }
+    }
+
+    private fun bitmapToBase64(bitmap: Bitmap): String {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        val byteArray = byteArrayOutputStream.toByteArray()
+        return Base64.encodeToString(byteArray, Base64.DEFAULT)
     }
 
     private val requestPermission =

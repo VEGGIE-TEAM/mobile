@@ -1,27 +1,29 @@
-import com.example.deteksisayur.Data
-import com.example.deteksisayur.DatabasePOST
+package Api
+
+import Data.DDatabase
+import Interface.InterfaceDatabasePOST
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class Database {
+class APIDatabase {
 
-    private val BASE_URL = "http://10.2.4.6:3934/api/"
+    private val BASE_URL = "http://192.168.133.19:3934/api/"
     private val retrofit: Retrofit
-    private val apiService: DatabasePOST
+    private val apiService: InterfaceDatabasePOST
 
     init {
         retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-        apiService = retrofit.create(DatabasePOST::class.java)
+        apiService = retrofit.create(InterfaceDatabasePOST::class.java)
     }
 
-    fun sendDataToDatabase(data: Data, callback: (Boolean) -> Unit) {
-        val call: Call<Void> = apiService.sendDeteksiResult(data)
+    fun sendDataToDatabase(DDatabase: DDatabase, callback: (Boolean) -> Unit) {
+        val call: Call<Void> = apiService.sendDeteksiResult(DDatabase)
 
         call.enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {

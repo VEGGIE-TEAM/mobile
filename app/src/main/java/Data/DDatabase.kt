@@ -1,6 +1,6 @@
-package com.example.deteksisayur
+package Data
 
-data class Data (
+data class DDatabase(
     val foto: String,
     val hasil_deteksi: String
 )

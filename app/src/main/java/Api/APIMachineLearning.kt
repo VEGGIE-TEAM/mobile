@@ -1,7 +1,9 @@
-package com.example.deteksisayur
+package Api
 
 import android.graphics.Bitmap
 import android.util.Base64
+import Data.DMachineLearning
+import Interface.InterfaceMachineLearningPOST
 import okhttp3.MediaType
 import okhttp3.RequestBody
 import retrofit2.Call
@@ -11,18 +13,18 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.ByteArrayOutputStream
 
-class MachineLearning {
+class APIMachineLearning {
 
         private val BASE_URL = "http://10.2.4.6:5000/"
         private val retrofit: Retrofit
-        private val apiService: MachineLearningPOST
+        private val apiService: InterfaceMachineLearningPOST
 
         init {
             retrofit = Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-            apiService = retrofit.create(MachineLearningPOST::class.java)
+            apiService = retrofit.create(InterfaceMachineLearningPOST::class.java)
         }
 
     fun kirimDataGambarKeAPI(
@@ -33,10 +35,10 @@ class MachineLearning {
         val base64Image = bitmapToBase64(gambar)
         val requestBody = RequestBody.create(MediaType.parse("application/json"), base64Image)
 
-        val call: Call<DataML> = apiService.predict(requestBody)
+        val call: Call<DMachineLearning> = apiService.predict(requestBody)
 
-        call.enqueue(object : Callback<DataML> {
-            override fun onResponse(call: Call<DataML>, response: Response<DataML>) {
+        call.enqueue(object : Callback<DMachineLearning> {
+            override fun onResponse(call: Call<DMachineLearning>, response: Response<DMachineLearning>) {
                 if (response.isSuccessful) {
                     val hasilPrediksi = response.body()?.result
                     if (hasilPrediksi != null) {
@@ -49,7 +51,7 @@ class MachineLearning {
                 }
             }
 
-            override fun onFailure(call: Call<DataML>, t: Throwable) {
+            override fun onFailure(call: Call<DMachineLearning>, t: Throwable) {
                 callback(false, null)
             }
         })

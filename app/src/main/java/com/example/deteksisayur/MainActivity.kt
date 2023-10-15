@@ -1,6 +1,7 @@
 package com.example.deteksisayur
 
-import Database
+import Api.APIDatabase
+import Data.DDatabase
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,15 +23,7 @@ import androidx.core.content.ContextCompat
 import com.example.deteksisayur.databinding.ActivityMainBinding
 import com.example.deteksisayur.ml.Modelbaru
 import org.tensorflow.lite.support.image.TensorImage
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import android.util.Base64
-import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.RequestBody
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -107,13 +100,13 @@ class MainActivity : AppCompatActivity() {
                 val bitmap = (imageView.drawable as BitmapDrawable).bitmap
                 val base64Image = bitmapToBase64(bitmap)
 
-                val dataToSend = Data(base64Image, hasilDeteksi)
+                val DDatabaseToSend = DDatabase(base64Image, hasilDeteksi)
 
-                val databaseService = Database()
+                val databaseService = APIDatabase()
 
-                databaseService.sendDataToDatabase(dataToSend) { success ->
+                databaseService.sendDataToDatabase(DDatabaseToSend) { success ->
                     if (success) {
-                        Toast.makeText(this@MainActivity, "Data berhasil dikirim ke Database", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "DDatabase berhasil dikirim ke Database", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(this@MainActivity, "Gagal mengirim data ke Database", Toast.LENGTH_SHORT).show()
                     }
@@ -144,7 +137,6 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
             if (bitmap != null) {
                 imageView.setImageBitmap(bitmap)
-                outputGenerator(bitmap)
             }
         }
 

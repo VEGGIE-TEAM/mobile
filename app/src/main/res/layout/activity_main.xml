@@ -14,7 +14,7 @@
         android:layout_marginTop="120dp"
         android:layout_marginLeft="27dp"
         android:layout_marginRight="27dp"
-        android:src="@drawable/holder"/>
+        android:src="@drawable/ic_launcher_background"/>
 
     <Button
         android:id="@+id/Ambil"
@@ -55,6 +55,18 @@
         android:layout_marginBottom="624dp"
         android:scaleType="fitCenter"
         android:src="@drawable/lokal"
+        tools:ignore="SpeakableTextPresentCheck"/>
+
+    <ImageButton
+        android:id="@+id/deteksiML"
+        android:layout_width="53dp"
+        android:layout_height="54dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="140dp"
+        android:layout_marginEnd="13dp"
+        android:layout_marginBottom="624dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/scan"
         tools:ignore="SpeakableTextPresentCheck"/>
 
     <TextView

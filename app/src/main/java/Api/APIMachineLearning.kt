@@ -1,68 +1,67 @@
 package Api
 
-import android.graphics.Bitmap
-import android.util.Base64
 import Data.DMachineLearning
-import Interface.InterfaceMachineLearningPOST
+import Interface.InterfaceMachineLearning
+import android.content.Context
+import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import okhttp3.MediaType
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
-class APIMachineLearning {
+class APIMachineLearning(private val context: Context, private val callback: (String) -> Unit) {
 
-        private val BASE_URL = "http://10.2.4.6:5000/"
-        private val retrofit: Retrofit
-        private val apiService: InterfaceMachineLearningPOST
+    private val BASE_URL = "http://192.168.43.191:3936/"
+    private val retrofit: Retrofit
+    private val apiService: InterfaceMachineLearning
+    private val mainHandler = Handler(Looper.getMainLooper())
 
-        init {
-            retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-            apiService = retrofit.create(InterfaceMachineLearningPOST::class.java)
-        }
+    init {
+        retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        apiService = retrofit.create(InterfaceMachineLearning::class.java)
+    }
 
-    fun kirimDataGambarKeAPI(
-        gambar: Bitmap,
-        hasilDeteksi: String,
-        callback: (Boolean, String?) -> Unit
-    ) {
-        val base64Image = bitmapToBase64(gambar)
-        val requestBody = RequestBody.create(MediaType.parse("application/json"), base64Image)
+    fun sendImageToServer(bitmap: Bitmap) {
+        val file = File.createTempFile("temp_image", null, context.cacheDir)
+        val outputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        outputStream.flush()
+        outputStream.close()
 
-        val call: Call<DMachineLearning> = apiService.predict(requestBody)
+        val requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), file)
+        val body = MultipartBody.Part.createFormData("image", file.name, requestBody)
+
+        val call = apiService.uploadImage(body)
 
         call.enqueue(object : Callback<DMachineLearning> {
             override fun onResponse(call: Call<DMachineLearning>, response: Response<DMachineLearning>) {
                 if (response.isSuccessful) {
-                    val hasilPrediksi = response.body()?.result
-                    if (hasilPrediksi != null) {
-                        callback(true, hasilPrediksi)
-                    } else {
-                        callback(false, null)
-                    }
+                    val hasilDeteksi = response.body()?.predicted_class
+                    mainHandler.post { callback(hasilDeteksi ?: "") }
                 } else {
-                    callback(false, null)
+                    mainHandler.post {
+                        Toast.makeText(context, "Gagal menerima respons deteksi", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<DMachineLearning>, t: Throwable) {
-                callback(false, null)
+                mainHandler.post {
+                    Toast.makeText(context, "Gagal mengirim permintaan deteksi", Toast.LENGTH_SHORT).show()
+                }
             }
         })
     }
-
-
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-            val byteArray = byteArrayOutputStream.toByteArray()
-            return Base64.encodeToString(byteArray, Base64.DEFAULT)
-        }
 }
-

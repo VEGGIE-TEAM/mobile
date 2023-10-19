@@ -1,263 +1,403 @@
 package com.example.deteksisayur
 
 import Api.APIDatabase
+import Api.APIMachineLearning
 import Data.DDatabase
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.SurfaceTexture
 import android.graphics.drawable.BitmapDrawable
+import android.hardware.camera2.*
+import android.media.ImageReader
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.HandlerThread
 import android.provider.MediaStore
-import android.util.Log
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.view.Surface
+import android.view.TextureView
+import android.view.View
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import com.example.deteksisayur.databinding.ActivityMainBinding
-import com.example.deteksisayur.ml.Modelbaru
-import org.tensorflow.lite.support.image.TensorImage
-import android.util.Base64
+import androidx.core.app.ActivityCompat
+import okhttp3.MediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.*
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var imageView: ImageView
-    private lateinit var button: Button
-    private lateinit var hasildetect: TextView
-    private val GALLERY_REQUEST_CODE = 123
-    private val TAG: String = "CHECK_RESPONSE"
+    lateinit var capReq: CaptureRequest.Builder
+    lateinit var handler: Handler
+    private lateinit var handlerThread: HandlerThread
+    lateinit var cameraManager: CameraManager
+    lateinit var textureView: TextureView
+    lateinit var cameraDevice: CameraDevice
+    lateinit var imageReader: ImageReader
+    private lateinit var hasilDetect: TextView
+    lateinit var imageView: ImageView
+    private var isTextureViewVisible = true
+    private var cameraOrientation: Int = 0
+    private var isImageLoaded = false
+    private lateinit var apiMachineLearning: APIMachineLearning
+    private val REQUEST_PICK_IMAGE = 1
+
+    private fun openGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(intent, REQUEST_PICK_IMAGE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_PICK_IMAGE && resultCode == Activity.RESULT_OK) {
+            val selectedImageUri: Uri? = data?.data
+            try {
+                val inputStream = selectedImageUri?.let { contentResolver.openInputStream(it) }
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                imageView.setImageBitmap(bitmap)
+                imageView.visibility = View.VISIBLE
+                textureView.visibility = View.GONE
+                isImageLoaded = true
+                apiMachineLearning.sendImageToServer(bitmap)
+            } catch (e: FileNotFoundException) {
+                Toast.makeText(this@MainActivity, "Terjadi kesalahan saat memilih gambar", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupSpinners() {
+        val spinnerNamaPasar: Spinner = findViewById(R.id.spinnerNamaPasar)
+        val spinnerNamaSayur: Spinner = findViewById(R.id.spinnerNamaSayur)
+
+        val namaPasarItems = arrayOf("Pasar Sayur A", "Pasar Sayur B", "Pasar Sayur C")
+        val namaSayurItems = arrayOf("Timun", "Wortel", "Kubis", "Brokoli", "Selada")
+
+        val pasarAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, namaPasarItems)
+        val sayurAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, namaSayurItems)
+
+        pasarAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        sayurAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        spinnerNamaPasar.adapter = pasarAdapter
+        spinnerNamaSayur.adapter = sayurAdapter
+    }
+
+    private fun createPartFromString(string: String): RequestBody {
+        return RequestBody.create(MediaType.parse("text/plain"), string)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
+        setContentView(R.layout.activity_main)
+        getPermission()
+        setupSpinners()
+        textureView = findViewById(R.id.textureView)
+        imageView = findViewById(R.id.ImageView)
+        cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        handlerThread = HandlerThread("videoThread")
+        handlerThread.start()
+        handler = Handler(handlerThread.looper)
 
-        imageView = binding.ImageView
-        button = binding.Ambil
-        hasildetect = binding.rhasilDetect
-        val buttonGaleri = binding.ambilGaleri
-        val buttonSimpanLokal = binding.simpanLokal
-        val buttonKirimServer = binding.kirimServer
+        val analisisData = findViewById<ImageButton>(R.id.analisisData)
+        analisisData.setOnClickListener {
+            val intent = Intent(this, MainActivityAnalisisAdmin::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(intent)
+        }
 
-        button.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED
+        textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(
+                surface: SurfaceTexture,
+                width: Int,
+                height: Int
             ) {
-                takePicturePreview.launch(null)
-            } else {
-                requestPermission.launch(android.Manifest.permission.CAMERA)
-            }
-        }
-
-        buttonGaleri.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.READ_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                intent.type = "image/*"
-                val mimeTypes = arrayOf("image/jpeg", "image/png", "image/jpg")
-                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
-                intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                onresult.launch(intent)
-            } else {
-                requestPermission.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }
-
-        buttonSimpanLokal.setOnClickListener {
-            saveImageAndResultToLocalStorage()
-        }
-
-        val requestInternetPermission =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                if (granted) {
-                    Toast.makeText(this, "Berhasil Terhubung", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Akses INTERNET ditolak!! Coba lagi", Toast.LENGTH_SHORT).show()
-                }
+                openCamera(surface)
             }
 
-        buttonKirimServer.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.INTERNET
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                val hasilDeteksi = hasildetect.text.toString()
-                val bitmap = (imageView.drawable as BitmapDrawable).bitmap
-                val base64Image = bitmapToBase64(bitmap)
+            override fun onSurfaceTextureSizeChanged(
+                surface: SurfaceTexture,
+                width: Int,
+                height: Int
+            ) {}
 
-                val DDatabaseToSend = DDatabase(base64Image, hasilDeteksi)
-
-                val databaseService = APIDatabase()
-
-                databaseService.sendDataToDatabase(DDatabaseToSend) { success ->
-                    if (success) {
-                        Toast.makeText(this@MainActivity, "DDatabase berhasil dikirim ke Database", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this@MainActivity, "Gagal mengirim data ke Database", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                requestInternetPermission.launch(android.Manifest.permission.INTERNET)
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                return false
             }
-        }
-    }
 
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-        val byteArray = byteArrayOutputStream.toByteArray()
-        return Base64.encodeToString(byteArray, Base64.DEFAULT)
-    }
-
-    private val requestPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                takePicturePreview.launch(null)
-            } else {
-                Toast.makeText(this, "Akses Ditolak !! Coba Lagi ", Toast.LENGTH_SHORT).show()
-            }
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
         }
 
-    private val takePicturePreview =
-        registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-            if (bitmap != null) {
-                imageView.setImageBitmap(bitmap)
-            }
-        }
+        imageReader = ImageReader.newInstance(3546, 4608, ImageFormat.JPEG, 1)
+        imageReader.setOnImageAvailableListener({ reader ->
+            val image = reader?.acquireLatestImage()
+            try {
+                if (image != null) {
+                    val planes = image.planes
+                    val buffer = planes[0].buffer
+                    val bytes = ByteArray(buffer.remaining())
+                    buffer.get(bytes)
 
-    private val onresult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            Log.i("TAG", "Hasil: ${result.data} ${result.resultCode}")
-            onResultReceived(GALLERY_REQUEST_CODE, result)
-        }
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
-    private fun onResultReceived(requestCode: Int, result: ActivityResult) {
-        when (requestCode) {
-            GALLERY_REQUEST_CODE -> {
-                if (result.resultCode == Activity.RESULT_OK) {
-                    result.data?.data?.let { uri ->
-                        Log.i("TAG", "Hasil Diterima: $uri")
-                        val bitmap =
-                            BitmapFactory.decodeStream(contentResolver.openInputStream(uri))
+                    runOnUiThread {
                         imageView.setImageBitmap(bitmap)
-                        outputGenerator(bitmap)
+                        imageView.visibility = View.VISIBLE
+                        textureView.visibility = View.GONE
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                image?.close()
+            }
+        }, handler)
+
+        findViewById<Button>(R.id.ambilKamera).apply {
+            setOnClickListener {
+                if (isTextureViewVisible) {
+                    try {
+                        cameraDevice.createCaptureSession(
+                            listOf(imageReader.surface),
+                            object : CameraCaptureSession.StateCallback() {
+                                override fun onConfigured(session: CameraCaptureSession) {
+                                    try {
+                                        val captureRequest = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+                                        captureRequest.addTarget(imageReader.surface)
+
+                                        captureRequest.set(
+                                            CaptureRequest.JPEG_ORIENTATION,
+                                            cameraOrientation
+                                        )
+
+                                        session.capture(captureRequest.build(), object : CameraCaptureSession.CaptureCallback() {
+                                            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                                                runOnUiThread {
+                                                    val capturedBitmap = textureView.bitmap
+                                                    if (capturedBitmap != null) {
+                                                        apiMachineLearning.sendImageToServer(capturedBitmap)
+                                                    } else {
+                                                        Toast.makeText(this@MainActivity, "Terjadi kesalahan saat mengambil gambar", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    isImageLoaded = true
+                                                }
+                                            }
+
+                                            override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
+                                                runOnUiThread {
+                                                    Toast.makeText(this@MainActivity, "Terjadi kesalahan saat mengambil gambar", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }, handler)
+                                    } catch (e: CameraAccessException) {
+                                        e.printStackTrace()
+                                        runOnUiThread {
+                                            Toast.makeText(this@MainActivity, "Terjadi kesalahan saat mengambil gambar", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+
+                                override fun onConfigureFailed(session: CameraCaptureSession) {}
+                            },
+                            handler
+                        )
+                    } catch (e: CameraAccessException) {
+                        e.printStackTrace()
+                        Toast.makeText(this@MainActivity, "Terjadi kesalahan saat mengambil gambar", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    Log.e("TAG", "error memilih gambar")
+                    Toast.makeText(this@MainActivity, "Tidak dapat mengambil gambar", Toast.LENGTH_SHORT).show()
                 }
             }
         }
-    }
 
-    private fun outputGenerator(bitmap: Bitmap) {
-        val veggieModelbaru = Modelbaru.newInstance(this)
+        val galleryButton = findViewById<Button>(R.id.ambilGaleri)
+        galleryButton.setOnClickListener {
+            openGallery()
+        }
 
-        val newBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val tfimage = TensorImage.fromBitmap(newBitmap)
+        val imageButton = findViewById<ImageButton>(R.id.simpanLokal)
+        imageButton.setOnClickListener {
+            try {
+                lateinit var currentPhotoPath: String
+                val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
 
-        val outputs = veggieModelbaru.process(tfimage)
-            .probabilityAsCategoryList.apply {
-                sortByDescending { it.score }
+                val image = File.createTempFile(
+                    "img_${timeStamp}",
+                    ".jpg",
+                    storageDir
+                ).apply {
+                    currentPhotoPath = absolutePath
+                }
+
+                val bitmap = (imageView.drawable as BitmapDrawable).bitmap
+                val stream = FileOutputStream(image)
+
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                stream.close()
+
+                val options = BitmapFactory.Options()
+                options.inJustDecodeBounds = true
+                BitmapFactory.decodeFile(image.absolutePath, options)
+                Toast.makeText(this@MainActivity, "Gambar berhasil disimpan", Toast.LENGTH_SHORT).show()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Toast.makeText(this@MainActivity, "Gagal menyimpan gambar", Toast.LENGTH_SHORT).show()
             }
-        val highProbabilityOutput = outputs[0]
+        }
 
-        hasildetect.text = highProbabilityOutput.label
-        Log.i("TAG", "outputGenerator: $highProbabilityOutput")
-    }
+        hasilDetect = findViewById(R.id.rhasilDetect)
+        apiMachineLearning = APIMachineLearning(this) { hasilDeteksi ->
+            runOnUiThread {
+                val customResult = if (hasilDeteksi == "0") {
+                    "Sayur Busuk"
+                } else if (hasilDeteksi == "1") {
+                    "Sayur Segar"
+                } else {
+                    "Hasil deteksi tidak valid"
+                }
+                hasilDetect.text = customResult
+            }
+        }
 
-    private fun saveImageAndResultToLocalStorage() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            val hasilDeteksi = hasildetect.text.toString()
-            saveResultToLocalStorage(hasilDeteksi)
+        val kirimButton = findViewById<ImageButton>(R.id.kirimServer)
+        kirimButton.setOnClickListener {
 
-            val bitmap = (imageView.drawable as BitmapDrawable).bitmap
-            val fileName = "img_${getCurrentDateTime()}.jpg"
-            val savedImagePath = saveImageToInternalStorage(bitmap, fileName)
+            val spinnerNamaSayur: Spinner = findViewById(R.id.spinnerNamaSayur)
+            val spinnerNamaPasar: Spinner = findViewById(R.id.spinnerNamaPasar)
 
-            if (savedImagePath != null) {
-                Toast.makeText(this, "Foto disimpan di $savedImagePath", Toast.LENGTH_SHORT).show()
+            val selectedSayur = spinnerNamaSayur.selectedItem.toString()
+            val selectedPasar = spinnerNamaPasar.selectedItem.toString()
+
+            if (isImageLoaded) {
+                val bitmap = (imageView.drawable as BitmapDrawable).bitmap
+
+                val newWidth = 360
+                val newHeight = 630
+
+                val compressedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                compressedBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+                val byteArray: ByteArray = byteArrayOutputStream.toByteArray()
+
+                val requestFile = RequestBody.create(MediaType.parse("image/*"), byteArray)
+                val gambarPart = MultipartBody.Part.createFormData("gambar_sayur", "image.png", requestFile)
+
+                val deteksiData = HashMap<String, RequestBody>()
+                deteksiData["nama_sayur"] = createPartFromString(selectedSayur)
+                deteksiData["nama_pasar"] = createPartFromString(selectedPasar)
+                deteksiData["hasil_deteksi"] = createPartFromString(hasilDetect.text.toString())
+
+                val api = APIDatabase.APIClient.api
+                api.postKirimServer(deteksiData, gambarPart).enqueue(object : Callback<DDatabase> {
+                    override fun onResponse(call: Call<DDatabase>, response: Response<DDatabase>) {
+                        if (response.isSuccessful) {
+                            Toast.makeText(this@MainActivity, "Data berhasil dikirim ke server", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Gagal mengirim data ke server", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    override fun onFailure(call: Call<DDatabase>, t: Throwable) {
+                        Toast.makeText(this@MainActivity, "Gagal mengirim data ke server", Toast.LENGTH_SHORT).show()
+                    }
+                })
             } else {
-                Toast.makeText(this, "Gagal menyimpan foto", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            requestWritePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-    }
-
-    private fun saveImageToInternalStorage(bitmap: Bitmap, fileName: String): String? {
-        val directory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val filePath = File(directory, fileName)
-
-        val width: Int
-        val height: Int
-        if (bitmap.width > bitmap.height) {
-            width = 4608
-            height = 3456
-        } else {
-            width = 3456
-            height = 4608
-        }
-
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
-
-        try {
-            val stream: OutputStream = FileOutputStream(filePath)
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-            stream.flush()
-            stream.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
-            return null
-        }
-        return filePath.absolutePath
-    }
-
-    private fun getCurrentDateTime(): String {
-        val sdf = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault())
-        val currentDateAndTime: String = sdf.format(Date())
-        return currentDateAndTime
-    }
-
-    private val requestWritePermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                val hasilDeteksi = hasildetect.text.toString()
-                saveResultToLocalStorage(hasilDeteksi)
-            } else {
-                Toast.makeText(this, "Akses Ditolak !! Coba Lagi ", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Gambar belum dimuat. Mohon muat gambar terlebih dahulu.", Toast.LENGTH_SHORT).show()
             }
         }
 
-    private fun saveResultToLocalStorage(result: String) {
-        val fileName = "hasil_deteksi_${getCurrentDateTime()}.txt"
-        val directory = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-        val filePath = File(directory, fileName)
-        try {
-            filePath.writeText(result)
-            Toast.makeText(this, "Hasil deteksi disimpan di ${filePath.absolutePath}", Toast.LENGTH_SHORT)
-                .show()
-        } catch (e: IOException) {
-            e.printStackTrace()
-            Toast.makeText(this, "Gagal menyimpan hasil deteksi", Toast.LENGTH_SHORT).show()
+
+        val resetButton = findViewById<ImageButton>(R.id.reload)
+        resetButton.setOnClickListener {
+            cameraDevice.close()
+            runOnUiThread {
+                imageView.visibility = View.GONE
+                textureView.visibility = View.VISIBLE
+                isImageLoaded = false
+                hasilDetect.text = "Hasil Deteksi"
+            }
+            openCamera(textureView.surfaceTexture!!)
+        }
+
+        imageView.setOnClickListener {
+            isImageLoaded = true
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun openCamera(surfaceTexture: SurfaceTexture) {
+        cameraManager.openCamera(cameraManager.cameraIdList[0], object : CameraDevice.StateCallback() {
+            override fun onOpened(camera: CameraDevice) {
+                cameraDevice = camera
+                val characteristics = cameraManager.getCameraCharacteristics(camera.id)
+
+                cameraOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)!!
+
+                capReq = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                val surface = Surface(surfaceTexture)
+                capReq.addTarget(surface)
+
+                cameraDevice.createCaptureSession(
+                    listOf(surface, imageReader.surface),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            session.setRepeatingRequest(capReq.build(), null, null)
+                        }
+
+                        override fun onConfigureFailed(session: CameraCaptureSession) {}
+
+                    },
+                    handler
+                )
+            }
+
+            override fun onDisconnected(camera: CameraDevice) {}
+
+            override fun onError(camera: CameraDevice, error: Int) {}
+
+        }, handler)
+    }
+
+    private fun getPermission() {
+        val permissionList = mutableListOf<String>()
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+            permissionList.add(android.Manifest.permission.CAMERA)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            permissionList.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            permissionList.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+        if (permissionList.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionList.toTypedArray(), 101)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        grantResults.forEach {
+            if (it != PackageManager.PERMISSION_GRANTED) {
+                getPermission()
+            }
         }
     }
 }

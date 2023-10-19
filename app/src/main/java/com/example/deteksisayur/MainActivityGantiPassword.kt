@@ -1,7 +1,7 @@
 package com.example.deteksisayur
 
-import Api.APILoginUser
-import Interface.InterfaceLoginUser
+import Api.APILogin
+import Interface.InterfaceLogin
 import Data.DLoginUser
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -31,7 +31,7 @@ class MainActivityGantiPassword : AppCompatActivity() {
         buttonGanti.setOnClickListener {
             val password = passwordBaru.text.toString()
             val konfirmasiPassword = confirmPassword.text.toString()
-            val baseUrl = APILoginUser.RetrofitClient.BASE_URL
+            val baseUrl = APILogin.RetrofitClient.BASE_URL
 
             if (password == konfirmasiPassword) {
                 val retrofit = Retrofit.Builder()
@@ -39,7 +39,7 @@ class MainActivityGantiPassword : AppCompatActivity() {
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
 
-                val service = retrofit.create(InterfaceLoginUser::class.java)
+                val service = retrofit.create(InterfaceLogin::class.java)
 
                 val user = DLoginUser(username, password)
                 val call = service.updatePassword(user)

@@ -1,7 +1,7 @@
 
 package com.example.deteksisayur
 
-import Api.APILoginUser
+import Api.APILogin
 import Data.DLoginUser
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -39,8 +39,8 @@ class MainActivityDaftarAkun : AppCompatActivity() {
 
             val user = DLoginUser(username, password)
 
-            val call = APILoginUser.RetrofitClient.instance.registerUser(user)
-            val baseUrl = APILoginUser.RetrofitClient.BASE_URL
+            val call = APILogin.RetrofitClient.instance.registerUser(user)
+            val baseUrl = APILogin.RetrofitClient.BASE_URL
             val jsonMediaType = "application/json; charset=utf-8"
             val requestBody = RequestBody.create(MediaType.parse(jsonMediaType), Gson().toJson(user))
             val request = Request.Builder()

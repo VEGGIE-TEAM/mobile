@@ -1,19 +1,19 @@
 package Api
 
-import Interface.InterfaceLoginUser
+import Interface.InterfaceLogin
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-class APILoginUser {
+class APILogin {
     object RetrofitClient {
-        const val BASE_URL = "http://10.219.39.30:3935/"
+        const val BASE_URL = "http://192.168.43.191:3935/"
 
-        val instance: InterfaceLoginUser by lazy {
+        val instance: InterfaceLogin by lazy {
             val retrofit = Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-            retrofit.create(InterfaceLoginUser::class.java)
+            retrofit.create(InterfaceLogin::class.java)
         }
     }
 }

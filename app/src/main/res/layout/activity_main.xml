@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -8,66 +9,64 @@
 
     <TextureView
         android:id="@+id/textureView"
-        android:layout_width="254dp"
-        android:layout_height="348dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_centerHorizontal="true"
+        android:layout_width="250dp"
+        android:layout_height="320dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/ambilGaleri"
         android:layout_marginStart="50dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginTop="200dp"
+        android:layout_marginTop="190dp"
         android:layout_marginEnd="50dp"
-        android:layout_marginBottom="264dp"/>
+        android:layout_marginBottom="20dp"/>
 
     <ImageView
         android:id="@+id/ImageView"
-        android:layout_width="254dp"
-        android:layout_height="348dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_centerHorizontal="true"
+        android:layout_width="250dp"
+        android:layout_height="320dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/ambilGaleri"
         android:layout_marginStart="50dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginTop="200dp"
+        android:layout_marginTop="190dp"
         android:layout_marginEnd="50dp"
-        android:layout_marginBottom="264dp"
+        android:layout_marginBottom="20dp"
         android:visibility="gone"/>
 
     <Button
         android:id="@+id/ambilKamera"
-        android:layout_width="wrap_content"
+        android:layout_width="155dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="510dp"
-        android:layout_marginEnd="27dp"
+        app:layout_constraintStart_toEndOf="@id/ambilGaleri"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="520dp"
+        android:layout_marginEnd="37dp"
         android:layout_marginBottom="108dp"
         android:text="Ambil Gambar"/>
 
     <Button
         android:id="@+id/ambilGaleri"
-        android:layout_width="192dp"
+        android:layout_width="155dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="29dp"
-        android:layout_marginTop="510dp"
-        android:layout_marginEnd="190dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/ambilKamera"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginStart="37dp"
+        android:layout_marginTop="520dp"
+        android:layout_marginEnd="13dp"
         android:layout_marginBottom="108dp"
         android:text="Ambil Galeri"/>
 
     <ImageButton
         android:id="@+id/kirimServer"
-        android:layout_width="31dp"
-        android:layout_height="31dp"
-        android:layout_alignParentTop="true"
+        android:layout_width="29dp"
+        android:layout_height="29dp"
+        app:layout_constraintStart_toEndOf="@id/simpanLokal"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginStart="15dp"
         android:layout_marginTop="32dp"
-        android:layout_toEndOf="@id/simpanLokal"
         android:background="@null"
         android:scaleType="fitCenter"
         android:src="@drawable/kirim"
@@ -75,10 +74,10 @@
 
     <ImageButton
         android:id="@+id/simpanLokal"
-        android:layout_width="31dp"
-        android:layout_height="31dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
+        android:layout_width="29dp"
+        android:layout_height="29dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginStart="29dp"
         android:layout_marginTop="32dp"
         android:background="@null"
@@ -88,26 +87,53 @@
 
     <ImageButton
         android:id="@+id/reload"
-        android:layout_width="31dp"
-        android:layout_height="31dp"
-        android:layout_alignParentTop="true"
+        android:layout_width="29dp"
+        android:layout_height="29dp"
+        app:layout_constraintStart_toEndOf="@id/kirimServer"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginStart="15dp"
         android:layout_marginTop="32dp"
-        android:layout_toEndOf="@id/kirimServer"
         android:background="@null"
         android:scaleType="fitCenter"
         android:src="@drawable/reload"
         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck"/>
 
+    <ImageButton
+        android:id="@+id/cropGambar"
+        android:layout_width="29dp"
+        android:layout_height="29dp"
+        app:layout_constraintEnd_toStartOf="@id/machineLearning"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginEnd="15dp"
+        android:layout_marginTop="32dp"
+        android:background="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/crop"
+        tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck"/>
+
+    <ImageButton
+        android:id="@+id/machineLearning"
+        android:layout_width="29dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="29dp"
+        android:background="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/scan"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="TouchTargetSizeCheck,SpeakableTextPresentCheck" />
+
     <TextView
         android:id="@+id/hasilDetect"
         android:layout_width="227dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ambilGaleri"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginStart="29dp"
-        android:layout_marginTop="565dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="155dp"
         android:text="Hasil Deteksi :"
         android:textColor="@color/black"
@@ -116,12 +142,12 @@
     <TextView
         android:id="@+id/rhasilDetect"
         android:layout_width="234dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="149dp"
-        android:layout_marginTop="565dp"
+        android:layout_height="70dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ambilGaleri"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="137dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="17dp"
         android:text="Hasil Deteksi"
         android:textColor="@android:color/holo_purple"
@@ -129,9 +155,11 @@
 
     <Spinner
         android:id="@+id/spinnerNamaPasar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/spinnerNamaSayur"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/spinnerNamaSayur"
         android:layout_marginStart="29dp"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="27dp"
@@ -140,9 +168,11 @@
 
     <Spinner
         android:id="@+id/spinnerNamaSayur"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/reload"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/reload"
         android:layout_marginStart="29dp"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="27dp"
@@ -151,17 +181,21 @@
 
     <View
         android:id="@+id/penutup"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="1dp"
-        android:layout_below="@id/rhasilDetect"
-        android:layout_marginTop="113dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="707dp"
         android:background="@color/black"/>
 
     <View
         android:id="@+id/penengah"
         android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:layout_below="@id/penutup"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/penutup"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="@id/penutup"
         android:background="@color/black"
         android:layout_marginStart="180dp"/>
 
@@ -169,8 +203,8 @@
         android:id="@+id/ambilData"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:layout_below="@id/penutup"
-        android:layout_alignParentStart="true"
+        app:layout_constraintTop_toBottomOf="@id/penutup"
+        app:layout_constraintStart_toStartOf="parent"
         android:layout_marginStart="73dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="20dp"
@@ -183,9 +217,9 @@
         android:id="@+id/analisisData"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:layout_below="@id/penutup"
-        android:layout_alignParentStart="true"
-        android:layout_marginStart="260dp"
+        app:layout_constraintTop_toBottomOf="@id/penutup"
+        app:layout_constraintStart_toEndOf="@id/penengah"
+        android:layout_marginStart="73dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="20dp"
         android:src="@drawable/analisis"
@@ -193,4 +227,4 @@
         android:scaleType="fitCenter"
         tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck"/>
 
-</RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

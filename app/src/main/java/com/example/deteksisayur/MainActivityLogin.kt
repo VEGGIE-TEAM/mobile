@@ -1,6 +1,6 @@
 package com.example.deteksisayur
 
-import Api.APILogin
+import Data.APILogin
 import Data.DLoginUser
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -49,6 +49,13 @@ class MainActivityLogin : AppCompatActivity() {
                         Toast.makeText(this@MainActivityLogin, "Terjadi kesalahan. Silakan coba lagi.", Toast.LENGTH_SHORT).show()
                     }
                 })
+        }
+
+        val loginAnonimus = findViewById<TextView>(R.id.loginAnonimus)
+        loginAnonimus.setOnClickListener {
+            val intent = Intent(this, MainActivityAnalisis::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(intent)
         }
 
         val daftarAkunTextView = findViewById<TextView>(R.id.daftarAkun)

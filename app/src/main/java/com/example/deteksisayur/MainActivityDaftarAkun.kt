@@ -1,7 +1,7 @@
 
 package com.example.deteksisayur
 
-import Api.APILogin
+import Data.APILogin
 import Data.DLoginUser
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity

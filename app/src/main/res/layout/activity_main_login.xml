@@ -13,7 +13,7 @@
         android:layout_height="144dp"
         android:layout_marginStart="50dp"
         android:layout_marginEnd="50dp"
-        android:layout_marginTop="150dp"
+        android:layout_marginTop="130dp"
         android:src="@drawable/icon"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.254"
@@ -47,11 +47,27 @@
         android:hint="Password"
         android:backgroundTint="#FFFFFF"
         android:textColorHint="#FFFFFF"
+        android:inputType="textPassword"
         android:textColor="#FFFFFF"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editTextUsername" />
+
+    <Button
+        android:id="@+id/loginAnonimus"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="32dp"
+        android:backgroundTint="#15DA67"
+        android:text="Masuk"
+        android:textColor="#000000"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/lupaPassword" />
 
     <Button
         android:id="@+id/loginUser"
@@ -66,7 +82,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/lupaPassword" />
+        app:layout_constraintTop_toBottomOf="@+id/loginAnonimus" />
 
     <TextView
         android:id="@+id/lupaPassword"
